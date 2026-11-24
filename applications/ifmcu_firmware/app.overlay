@@ -1,0 +1,37 @@
+/ {
+	chosen {
+		zephyr,console = &blinky_cdc;
+	};
+
+	aliases {
+		blinky-led = &blinky_led;
+	};
+
+	blinky_leds {
+		compatible = "gpio-leds";
+		blinky_led: blinky_led {
+			gpios = <&gpio0 2 GPIO_ACTIVE_HIGH>;
+			label = "LED on P0.02";
+		};
+	};
+};
+
+/* USB virtual serial port for log output */
+&zephyr_udc0 {
+	blinky_cdc: blinky_cdc {
+		compatible = "zephyr,cdc-acm-uart";
+	};
+};
+
+/*
+ * On the nRF9151 Connect Kit, P0.02 is the I2C SDA line to the battery
+ * charger. Disable the I2C peripherals so the TWIM does not own the pin
+ * and the GPIO can drive it.
+ */
+&i2c0 {
+	status = "disabled";
+};
+
+&i2c1 {
+	status = "disabled";
+};
