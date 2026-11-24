@@ -1,0 +1,56 @@
+name: Build nRF52820 Blinky UF2
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "applications/nrf52820_blinky/**"
+      - ".github/workflows/build-blinky.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout (manifest repo)
+        uses: actions/checkout@v4
+        with:
+          path: nrf9151-connectkit
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install host dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            ninja-build gperf device-tree-compiler ccache xz-utils file
+
+      - name: Set up west workspace
+        run: |
+          pip install west
+          west init -l nrf9151-connectkit
+          west update --narrow -o=--depth=1
+          west zephyr-export
+          west packages pip --install
+
+      - name: Install Zephyr SDK (ARM toolchain only)
+        run: |
+          cd zephyr
+          west sdk install -t arm-zephyr-eabi
+
+      - name: Build blinky
+        run: |
+          cd nrf9151-connectkit
+          west build -p always -b nrf9151_connectkit/nrf52820 \
+            applications/nrf52820_blinky -d build
+          find build -name "zephyr.uf2"
+
+      - name: Upload UF2
+        uses: actions/upload-artifact@v4
+        with:
+          name: nrf52820-blinky-uf2
+          path: |
+            nrf9151-connectkit/build/**/zephyr.uf2
+            nrf9151-connectkit/build/**/zephyr.hex
